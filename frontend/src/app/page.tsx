@@ -35,7 +35,7 @@ export default function Home() {
 
   const fetchCategories = async () => {
     try {
-      const res = await api.get('/categories/');
+      const res = await api.get('categories/');
       setCategories(res.data);
     } catch (err) {
       console.error(err);
@@ -45,7 +45,7 @@ export default function Home() {
   const fetchPlaces = async (categoryId?: number, searchTerm?: string) => {
     setLoading(true);
     try {
-      let url = '/places/?status=approved';
+      let url = 'places/?status=approved';
       if (categoryId) url += `&category=${categoryId}`;
       if (searchTerm) url += `&search=${searchTerm}`;
 

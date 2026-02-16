@@ -28,7 +28,7 @@ export default function PlaceDetail() {
   useEffect(() => {
     const fetchPlace = async () => {
       try {
-        const res = await api.get(`/places/${id}/`);
+        const res = await api.get(`places/${id}/`);
         setPlace(res.data);
       } catch (err) {
         console.error(err);

@@ -36,7 +36,7 @@ export default function Dashboard() {
 
   const fetchMyPlaces = async () => {
     try {
-      const res = await api.get('/places/');
+      const res = await api.get('places/');
       setPlaces(res.data);
     } catch (err) {
       console.error(err);

@@ -19,7 +19,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await api.post('/auth/token/', { username, password });
+      const res = await api.post('auth/token/', { username, password });
       login(res.data.access, res.data.refresh);
       toast.success('Logged in successfully!');
     } catch (err) {

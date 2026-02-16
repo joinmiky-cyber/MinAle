@@ -53,8 +53,8 @@ export default function SubmitPlace() {
   const fetchData = async () => {
     try {
       const [cats, pays] = await Promise.all([
-        api.get('/categories/'),
-        api.get('/payment-methods/')
+        api.get('categories/'),
+        api.get('payment-methods/')
       ]);
       setCategories(cats.data);
       setPaymentMethods(pays.data);
@@ -83,7 +83,7 @@ export default function SubmitPlace() {
         galleryImages.map(img => uploadImage(img))
       );
 
-      await api.post('/places/', {
+      await api.post('places/', {
         name,
         description,
         address,
