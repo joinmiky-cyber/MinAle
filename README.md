@@ -54,8 +54,9 @@ The backend handles the data, authentication, and the administration panel.
     ```env
     DEBUG=True
     SECRET_KEY=create-a-random-long-string-here
-    # Use your Supabase Connection String (Transaction mode preferred)
-    DATABASE_URL=postgres://postgres:[YOUR-PASSWORD]@[YOUR-HOST]:5432/postgres
+    # Use your Supabase Connection String
+    # NOTE: Use the Connection Pooler URL (Port 6543) to avoid IPv6 issues
+    DATABASE_URL=postgres://postgres.[YOUR-PROJECT-ID]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require
     ALLOWED_HOSTS=localhost,127.0.0.1
     ```
 
@@ -81,7 +82,7 @@ The backend handles the data, authentication, and the administration panel.
     ```bash
     python manage.py runserver
     ```
-    Keep this terminal open. Your API is now live at `http://localhost:8000/api/`.
+    Keep this terminal open. Your backend is now live at `http://localhost:8000/`.
 
 ---
 
@@ -150,6 +151,18 @@ To allow image uploads for business listings:
 4.  The business will now appear on the public home page!
 
 ---
+
+## 🛑 Troubleshooting: "Network is unreachable" (Supabase)
+
+If you see a `django.db.utils.OperationalError: Network is unreachable` when running migrations, it is likely because your network does not support IPv6, which Supabase uses by default for direct connections.
+
+**The Fix:**
+1.  Go to your **Supabase Dashboard** > **Project Settings** > **Database**.
+2.  Find the **Connection Pooler** section.
+3.  Ensure **Mode** is set to `Transaction` or `Session`.
+4.  Copy the connection string (it should use port `6543`).
+5.  Use this string in your `.env` file as the `DATABASE_URL`.
+6.  Ensure you append `?sslmode=require` to the end of the URL.
 
 ## 🚢 Deployment Tips
 
