@@ -12,6 +12,7 @@ class PaymentMethodAdmin(admin.ModelAdmin):
 
 class PlaceImageInline(admin.TabularInline):
     model = PlaceImage
+    fields = ('image_url', 'label')
     extra = 1
 
 @admin.register(Place)

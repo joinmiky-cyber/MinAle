@@ -16,6 +16,14 @@ MinAle is a localized business discovery platform focused on Ethiopian cities, a
 
 ## 🚀 Step-by-Step Setup Guide
 
+### ☁️ Special Note for GitHub Codespaces
+If you are running this in **GitHub Codespaces**, follow these extra steps:
+1.  Go to the **Ports** tab in your terminal/bottom panel.
+2.  Find port **8000** (Backend) and port **3000** (Frontend).
+3.  Right-click the "Visibility" for both and set them to **Public**.
+4.  Copy the **Forwarded Address** for port **8000**.
+5.  In your `frontend/.env.local`, set `NEXT_PUBLIC_API_URL` to that address (e.g., `https://...-8000.app.github.dev/api`).
+
 ### 1. Prerequisites
 Ensure you have the following installed on your machine:
 - **Python 3.10 or higher**
@@ -163,6 +171,11 @@ If you see a `django.db.utils.OperationalError: Network is unreachable` when run
 4.  Copy the connection string (it should use port `6543`).
 5.  Use this string in your `.env` file as the `DATABASE_URL`.
 6.  Ensure you append `?sslmode=require` to the end of the URL.
+
+**Codespaces CSRF Error:**
+If you get a CSRF error in the Django Admin while using Codespaces:
+1.  Copy your frontend's forwarded URL.
+2.  In `backend/.env`, add `CSRF_TRUSTED_ORIGINS=https://your-frontend-url.app.github.dev`.
 
 ## 🚢 Deployment Tips
 

@@ -15,7 +15,11 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
 class PlaceImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlaceImage
-        fields = ('id', 'image_url')
+        fields = ('id', 'image_url', 'label')
+
+class GalleryImageInputSerializer(serializers.Serializer):
+    image_url = serializers.URLField()
+    label = serializers.ChoiceField(choices=PlaceImage.LABEL_CHOICES)
 
 class PlaceListSerializer(serializers.ModelSerializer):
     category_name = serializers.ReadOnlyField(source='category.name')
@@ -35,28 +39,24 @@ class PlaceDetailSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class PlaceCreateSerializer(serializers.ModelSerializer):
-    gallery_urls = serializers.ListField(
-        child=serializers.URLField(),
-        write_only=True,
-        required=False
-    )
+    gallery = GalleryImageInputSerializer(many=True, write_only=True, required=False)
 
     class Meta:
         model = Place
         fields = (
             'id', 'name', 'description', 'address', 'latitude', 'longitude',
-            'opening_hours', 'category', 'payment_methods', 'cover_image', 'gallery_urls'
+            'opening_hours', 'category', 'payment_methods', 'cover_image', 'gallery'
         )
 
     def create(self, validated_data):
-        gallery_urls = validated_data.pop('gallery_urls', [])
+        gallery_data = validated_data.pop('gallery', [])
         payment_methods = validated_data.pop('payment_methods', [])
 
         place = Place.objects.create(**validated_data)
         place.payment_methods.set(payment_methods)
 
-        for url in gallery_urls:
-            PlaceImage.objects.create(place=place, image_url=url)
+        for item in gallery_data:
+            PlaceImage.objects.create(place=place, **item)
 
         return place
 
@@ -65,7 +65,7 @@ class PlaceCreateSerializer(serializers.ModelSerializer):
         if instance.status != 'pending':
             raise serializers.ValidationError("Only pending submissions can be edited.")
 
-        gallery_urls = validated_data.pop('gallery_urls', None)
+        gallery_data = validated_data.pop('gallery', None)
         payment_methods = validated_data.pop('payment_methods', None)
 
         for attr, value in validated_data.items():
@@ -75,9 +75,9 @@ class PlaceCreateSerializer(serializers.ModelSerializer):
         if payment_methods is not None:
             instance.payment_methods.set(payment_methods)
 
-        if gallery_urls is not None:
+        if gallery_data is not None:
             instance.gallery.all().delete()
-            for url in gallery_urls:
-                PlaceImage.objects.create(place=instance, image_url=url)
+            for item in gallery_data:
+                PlaceImage.objects.create(place=instance, **item)
 
         return instance

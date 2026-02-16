@@ -1,12 +1,4 @@
-[16/Feb/2026 10:23:38] "GET /api/places/?status=approved HTTP/1.1" 200 2
-[16/Feb/2026 10:23:38] "GET /api/categories/ HTTP/1.1" 200 706
-Performing system checks...
-
-System check identified no issues (0 silenced).
-February 16, 2026 - 10:22:56
-Django version 6.0.2, using settings 'minale_backend.settings'
-Starting development server at http://0.0.0.0:8000/
-Quit the server with CONTROL-C.
-
-WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
-For more information on production servers see: https://docs.djangoproject.com/en/6.0/howto/deployment/
+/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/django/core/handlers/base.py:62: UserWarning: No directory at: /app/backend/staticfiles/
+  mw_instance = middleware(adapted_handler)
+[16/Feb/2026 13:36:08] "OPTIONS /api/auth/token/ HTTP/1.1" 200 0
+[16/Feb/2026 13:36:09] "POST /api/auth/token/ HTTP/1.1" 401 63

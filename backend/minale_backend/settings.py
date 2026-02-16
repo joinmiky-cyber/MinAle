@@ -161,3 +161,6 @@ SIMPLE_JWT = {
 # CORS configuration
 CORS_ALLOW_ALL_ORIGINS = True # Change this in production
 CORS_ALLOW_CREDENTIALS = True
+
+# For Codespaces/Deployment
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['http://localhost:3000', 'http://127.0.0.1:3000'])

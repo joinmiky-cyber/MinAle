@@ -2,23 +2,13 @@
 > frontend@0.1.0 dev
 > next dev -p 3000
 
-▲ Next.js 16.1.6 (Turbopack)
-- Local:         http://localhost:3000
-- Network:       http://192.168.0.2:3000
-- Environments: .env.local
+   ▲ Next.js 15.1.7
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.2:3000
+   - Environments: .env.local
 
-✓ Starting...
-✓ Ready in 1140ms
-○ Compiling / ...
- GET / 200 in 5.4s (compile: 4.8s, render: 600ms)
- GET /login 200 in 1205ms (compile: 1149ms, render: 56ms)
-Error: Turbopack build failed with 1 errors:
-./src/app
-Error: Next.js inferred your workspace root, but it may not be correct.
-    We couldn't find the Next.js package (next/package.json) from the project directory: /app/frontend/src/app
-     To fix this, set turbopack.root in your Next.js config, or ensure the Next.js package is resolvable from this directory.
-    Note: For security and performance reasons, files outside of the project directory will not be compiled.
-    See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
-
-    at ignore-listed frames
-[?25h
+ ✓ Starting...
+ ✓ Ready in 2.1s
+ ○ Compiling /login ...
+ ✓ Compiled /login in 9.4s (1109 modules)
+ GET /login 200 in 10633ms

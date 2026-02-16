@@ -30,7 +30,7 @@ class Place(models.Model):
     address = models.CharField(max_length=500)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    opening_hours = models.TextField(blank=True, help_text="Simple text representation of opening hours")
+    opening_hours = models.JSONField(default=dict, blank=True, help_text="Structured operating hours")
 
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='places')
     payment_methods = models.ManyToManyField(PaymentMethod, related_name='places')
@@ -48,9 +48,19 @@ class Place(models.Model):
         return self.name
 
 class PlaceImage(models.Model):
+    LABEL_CHOICES = [
+        ('Inside', 'Inside'),
+        ('Outside', 'Outside'),
+        ('Drink', 'Drink'),
+        ('Food', 'Food'),
+        ('Menu', 'Menu'),
+        ('Amenities', 'Amenities'),
+    ]
+
     place = models.ForeignKey(Place, on_delete=models.CASCADE, related_name='gallery')
     image_url = models.URLField(max_length=1000)
+    label = models.CharField(max_length=20, choices=LABEL_CHOICES, default='Inside')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Image for {self.place.name}"
+        return f"{self.label} Image for {self.place.name}"
