@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, PaymentMethod, Place, PlaceImage
+from .models import Category, PaymentMethod, Place, PlaceImage, Review, ReviewImage
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -30,3 +30,9 @@ class PlaceAdmin(admin.ModelAdmin):
     def reject_places(self, request, queryset):
         queryset.update(status='rejected')
     reject_places.short_description = "Reject selected places"
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('user', 'place', 'rating_overall', 'helpful_count', 'created_at')
+    list_filter = ('rating_overall', 'customer_service')
+    search_fields = ('comment', 'user__username', 'place__name')

@@ -64,3 +64,37 @@ class PlaceImage(models.Model):
 
     def __str__(self):
         return f"{self.label} Image for {self.place.name}"
+
+class Review(models.Model):
+    place = models.ForeignKey(Place, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+
+    rating_overall = models.PositiveSmallIntegerField(default=5)
+    customer_service = models.BooleanField(default=True, help_text="Yes/No for good customer service")
+    wifi_speed = models.PositiveSmallIntegerField(default=3, help_text="1-5 rating")
+    cleanliness = models.PositiveSmallIntegerField(default=3, help_text="1-5 rating")
+
+    comment = models.TextField()
+    helpful_count = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-helpful_count', '-created_at']
+
+    def __str__(self):
+        return f"Review by {self.user.username} for {self.place.name}"
+
+class ReviewImage(models.Model):
+    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='images')
+    image_url = models.URLField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class HelpfulVote(models.Model):
+    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='votes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('review', 'user')

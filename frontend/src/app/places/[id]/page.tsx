@@ -4,15 +4,41 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, CreditCard, ChevronLeft, Image as ImageIcon } from 'lucide-react';
+import { MapPin, Clock, CreditCard, ChevronLeft, Image as ImageIcon, ThumbsUp, Wifi, Sparkles, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { StarRating } from '@/components/StarRating';
+import { ReviewForm } from '@/components/ReviewForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface DayHours {
   open: string;
   close: string;
   closed: boolean;
+}
+
+interface Review {
+  id: number;
+  user_name: string;
+  rating_overall: number;
+  customer_service: boolean;
+  wifi_speed: number;
+  cleanliness: number;
+  comment: string;
+  helpful_count: number;
+  is_helpful: boolean;
+  images: { image_url: string }[];
+  created_at: string;
+}
+
+interface RatingStats {
+  avg_overall: number;
+  avg_wifi: number;
+  avg_cleanliness: number;
+  total_reviews: number;
+  customer_service_pct: number;
 }
 
 interface Place {
@@ -25,6 +51,8 @@ interface Place {
   category: { name: string };
   payment_methods: { id: number, name: string }[];
   gallery: { image_url: string, label: string }[];
+  reviews: Review[];
+  rating_stats: RatingStats;
 }
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -44,22 +72,37 @@ export default function PlaceDetail() {
   const [place, setPlace] = useState<Place | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedLabel, setSelectedLabel] = useState('All');
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+
+  const fetchPlace = async () => {
+    try {
+      const res = await api.get(`places/${id}/`);
+      setPlace(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPlace = async () => {
-      try {
-        const res = await api.get(`places/${id}/`);
-        setPlace(res.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     if (id) {
       fetchPlace();
     }
   }, [id]);
+
+  const handleHelpful = async (reviewId: number) => {
+    try {
+      await api.post(`reviews/${reviewId}/helpful/`);
+      fetchPlace();
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        toast.error('Please log in to vote');
+      } else {
+        toast.error('Failed to vote');
+      }
+    }
+  };
 
   const filteredGallery = useMemo(() => {
     if (!place) return [];
@@ -72,12 +115,35 @@ export default function PlaceDetail() {
 
   return (
     <div className="space-y-8 pb-20 max-w-6xl mx-auto px-4">
-      <Link href="/">
-        <Button variant="ghost" className="gap-2 mb-4">
-          <ChevronLeft size={18} />
-          Back to Browse
-        </Button>
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link href="/">
+          <Button variant="ghost" className="gap-2">
+            <ChevronLeft size={18} />
+            Back to Browse
+          </Button>
+        </Link>
+
+        <Dialog open={isReviewModalOpen} onOpenChange={setIsReviewModalOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <MessageSquare size={18} />
+              Write a Review
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Share your experience at {place.name}</DialogTitle>
+            </DialogHeader>
+            <ReviewForm
+              placeId={place.id}
+              onSuccess={() => {
+                setIsReviewModalOpen(false);
+                fetchPlace();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
 
       <div className="grid lg:grid-cols-2 gap-12">
         <div className="space-y-8">
@@ -89,64 +155,69 @@ export default function PlaceDetail() {
             )}
           </div>
 
-          {place.gallery.length > 0 && (
-            <div className="space-y-6">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold flex items-center gap-2">
-                    <ImageIcon size={20} className="text-primary" />
-                    Gallery
-                  </h3>
-                  <span className="text-sm text-muted-foreground">{filteredGallery.length} images</span>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {LABELS.map(label => {
-                    const count = label === 'All'
-                      ? place.gallery.length
-                      : place.gallery.filter(img => img.label === label).length;
-
-                    if (count === 0 && label !== 'All') return null;
-
-                    return (
-                      <Button
-                        key={label}
-                        variant={selectedLabel === label ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedLabel(label)}
-                        className="rounded-full h-8"
-                      >
-                        {label}
-                      </Button>
-                    );
-                  })}
-                </div>
+          <div className="space-y-6">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <ImageIcon size={20} className="text-primary" />
+                  Gallery
+                </h3>
+                <span className="text-sm text-muted-foreground">{filteredGallery.length} images</span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 transition-all duration-300">
-                {filteredGallery.length > 0 ? (
-                  filteredGallery.map((img, i) => (
-                    <div key={i} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 border shadow-sm hover:shadow-md transition-shadow">
-                      <img src={img.image_url} alt={`${place.name} ${i}`} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110" />
-                      <div className="absolute bottom-2 left-2">
-                        <Badge variant="secondary" className="opacity-90 backdrop-blur-sm">{img.label}</Badge>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-full py-12 text-center bg-gray-50 rounded-xl border border-dashed">
-                    <p className="text-muted-foreground">No images found for this category.</p>
-                  </div>
-                )}
+              <div className="flex flex-wrap gap-2">
+                {LABELS.map(label => {
+                  const count = label === 'All'
+                    ? place.gallery.length
+                    : place.gallery.filter(img => img.label === label).length;
+
+                  if (count === 0 && label !== 'All') return null;
+
+                  return (
+                    <Button
+                      key={label}
+                      variant={selectedLabel === label ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedLabel(label)}
+                      className="rounded-full h-8"
+                    >
+                      {label}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
-          )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 transition-all duration-300">
+              {filteredGallery.length > 0 ? (
+                filteredGallery.map((img, i) => (
+                  <div key={i} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 border shadow-sm hover:shadow-md transition-shadow">
+                    <img src={img.image_url} alt={`${place.name} ${i}`} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110" />
+                    <div className="absolute bottom-2 left-2">
+                      <Badge variant="secondary" className="opacity-90 backdrop-blur-sm">{img.label}</Badge>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full py-12 text-center bg-gray-50 rounded-xl border border-dashed">
+                  <p className="text-muted-foreground">No images found for this category.</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-8">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Badge className="px-3 py-1 text-sm">{place.category.name}</Badge>
+              {place.rating_stats.total_reviews > 0 && (
+                <div className="flex items-center gap-1 bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full text-sm font-bold">
+                  <StarRating rating={Math.round(place.rating_stats.avg_overall)} size={14} readonly />
+                  <span>{place.rating_stats.avg_overall.toFixed(1)}</span>
+                  <span className="text-xs font-normal opacity-70">({place.rating_stats.total_reviews})</span>
+                </div>
+              )}
             </div>
             <h1 className="text-5xl font-black tracking-tight">{place.name}</h1>
             <div className="flex items-center gap-2 text-xl text-muted-foreground">
@@ -154,6 +225,27 @@ export default function PlaceDetail() {
               <span>{place.address}</span>
             </div>
           </div>
+
+          {/* Aggregated Rating Stats */}
+          {place.rating_stats.total_reviews > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs font-bold text-muted-foreground uppercase">Service</span>
+                <span className="text-lg font-black text-primary">{place.rating_stats.customer_service_pct.toFixed(0)}%</span>
+                <span className="text-[10px] text-muted-foreground">Good Experience</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1"><Wifi size={12} /> Wi-Fi</span>
+                <StarRating rating={Math.round(place.rating_stats.avg_wifi)} size={14} readonly />
+                <span className="text-[10px] text-muted-foreground">{place.rating_stats.avg_wifi.toFixed(1)} Avg</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1"><Sparkles size={12} /> Clean</span>
+                <StarRating rating={Math.round(place.rating_stats.avg_cleanliness)} size={14} readonly />
+                <span className="text-[10px] text-muted-foreground">{place.rating_stats.avg_cleanliness.toFixed(1)} Avg</span>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white p-8 rounded-2xl border shadow-sm space-y-4">
             <h2 className="text-2xl font-bold">About this place</h2>
@@ -203,6 +295,81 @@ export default function PlaceDetail() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div className="space-y-8 border-t pt-12">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-black">Reviews</h2>
+          <div className="flex gap-4 items-center">
+            <span className="text-sm text-muted-foreground">{place.reviews.length} reviews total</span>
+          </div>
+        </div>
+
+        <div className="grid gap-6">
+          {place.reviews.length > 0 ? (
+            place.reviews.map((review) => (
+              <div key={review.id} className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {review.user_name[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="font-bold">{review.user_name}</h4>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <StarRating rating={review.rating_overall} size={12} readonly />
+                        <span>•</span>
+                        <span>{new Date(review.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant={review.is_helpful ? "default" : "outline"}
+                    size="sm"
+                    className="gap-2 h-8 rounded-full"
+                    onClick={() => handleHelpful(review.id)}
+                  >
+                    <ThumbsUp size={14} />
+                    Helpful {review.helpful_count > 0 && `(${review.helpful_count})`}
+                  </Button>
+                </div>
+
+                {/* Sub-ratings */}
+                <div className="flex flex-wrap gap-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-gray-50 p-2 rounded-lg">
+                  <div className="flex items-center gap-1">
+                    Service: <span className={review.customer_service ? "text-green-600" : "text-red-600"}>{review.customer_service ? "YES" : "NO"}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    Wi-Fi: <StarRating rating={review.wifi_speed} size={10} readonly />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    Cleanliness: <StarRating rating={review.cleanliness} size={10} readonly />
+                  </div>
+                </div>
+
+                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{review.comment}</p>
+
+                {review.images.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {review.images.map((img, i) => (
+                      <div key={i} className="w-24 h-24 rounded-lg overflow-hidden border">
+                        <img src={img.image_url} alt="Review" className="object-cover w-full h-full cursor-pointer hover:opacity-90 transition-opacity" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-20 bg-gray-50 rounded-2xl border border-dashed">
+              <MessageSquare size={48} className="mx-auto text-gray-300 mb-4" />
+              <h3 className="text-xl font-bold text-gray-400">No reviews yet</h3>
+              <p className="text-gray-400">Be the first to share your experience!</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

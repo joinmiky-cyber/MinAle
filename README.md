@@ -134,8 +134,9 @@ To allow image uploads for business listings:
 1.  Go to the **Supabase Dashboard**.
 2.  Click on **Storage** (on the left sidebar).
 3.  Click **New Bucket** and name it `places`.
-4.  Make the bucket **Public**.
-5.  **Important**: Set up a "Policy" for the `places` bucket to allow `INSERT` and `SELECT` operations. (For MVP, you can use "Allow all" for the `places` bucket, but for production, restrict `INSERT` to authenticated users).
+4.  Click **New Bucket** and name it `reviews`.
+5.  Make both buckets **Public**.
+6.  **Important**: Set up "Policies" for both buckets to allow `INSERT` and `SELECT` operations. (For MVP, you can use "Allow all", but for production, restrict `INSERT` to authenticated users).
 
 ---
 
