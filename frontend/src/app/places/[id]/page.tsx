@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, CreditCard, ChevronLeft } from 'lucide-react';
+import { MapPin, Clock, CreditCard, ChevronLeft, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface DayHours {
   open: string;
@@ -26,6 +27,9 @@ interface Place {
   gallery: { image_url: string, label: string }[];
 }
 
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const LABELS = ['All', 'Inside', 'Outside', 'Drink', 'Food', 'Menu', 'Amenities'];
+
 const formatTime = (timeStr: string) => {
   if (!timeStr) return '';
   const [hourStr, min] = timeStr.split(':');
@@ -39,6 +43,7 @@ export default function PlaceDetail() {
   const { id } = useParams();
   const [place, setPlace] = useState<Place | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedLabel, setSelectedLabel] = useState('All');
 
   useEffect(() => {
     const fetchPlace = async () => {
@@ -55,6 +60,12 @@ export default function PlaceDetail() {
       fetchPlace();
     }
   }, [id]);
+
+  const filteredGallery = useMemo(() => {
+    if (!place) return [];
+    if (selectedLabel === 'All') return place.gallery;
+    return place.gallery.filter(img => img.label === selectedLabel);
+  }, [place, selectedLabel]);
 
   if (loading) return <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />;
   if (!place) return <p>Place not found.</p>;
@@ -79,17 +90,54 @@ export default function PlaceDetail() {
           </div>
 
           {place.gallery.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold">Gallery</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {place.gallery.map((img, i) => (
-                  <div key={i} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 border shadow-sm">
-                    <img src={img.image_url} alt={`${place.name} ${i}`} className="object-cover w-full h-full" />
-                    <div className="absolute bottom-2 left-2">
-                      <Badge variant="secondary" className="opacity-90">{img.label}</Badge>
+            <div className="space-y-6">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <ImageIcon size={20} className="text-primary" />
+                    Gallery
+                  </h3>
+                  <span className="text-sm text-muted-foreground">{filteredGallery.length} images</span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {LABELS.map(label => {
+                    const count = label === 'All'
+                      ? place.gallery.length
+                      : place.gallery.filter(img => img.label === label).length;
+
+                    if (count === 0 && label !== 'All') return null;
+
+                    return (
+                      <Button
+                        key={label}
+                        variant={selectedLabel === label ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedLabel(label)}
+                        className="rounded-full h-8"
+                      >
+                        {label}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 transition-all duration-300">
+                {filteredGallery.length > 0 ? (
+                  filteredGallery.map((img, i) => (
+                    <div key={i} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 border shadow-sm hover:shadow-md transition-shadow">
+                      <img src={img.image_url} alt={`${place.name} ${i}`} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110" />
+                      <div className="absolute bottom-2 left-2">
+                        <Badge variant="secondary" className="opacity-90 backdrop-blur-sm">{img.label}</Badge>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="col-span-full py-12 text-center bg-gray-50 rounded-xl border border-dashed">
+                    <p className="text-muted-foreground">No images found for this category.</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
@@ -119,22 +167,25 @@ export default function PlaceDetail() {
                 Operating Hours
               </div>
               <div className="space-y-2">
-                {place.opening_hours && typeof place.opening_hours === 'object' ? (
-                  Object.entries(place.opening_hours).map(([day, hours]) => (
-                    <div key={day} className="flex justify-between text-sm">
-                      <span className="font-medium text-gray-500">{day}</span>
+                {DAYS.map((day) => {
+                  const hours = place.opening_hours?.[day];
+                  return (
+                    <div key={day} className="flex justify-between text-sm py-1 border-b border-gray-50 last:border-0">
+                      <span className={cn("font-medium", hours ? "text-gray-700" : "text-gray-400")}>{day}</span>
                       <span className="font-bold">
-                        {hours.closed ? (
-                          <span className="text-red-500">Closed</span>
+                        {hours ? (
+                          hours.closed ? (
+                            <span className="text-red-500 bg-red-50 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">Closed</span>
+                          ) : (
+                            <span className="text-gray-900">{formatTime(hours.open)} - {formatTime(hours.close)}</span>
+                          )
                         ) : (
-                          `${formatTime(hours.open)} - ${formatTime(hours.close)}`
+                          <span className="text-gray-400 italic font-normal">Not set</span>
                         )}
                       </span>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-400 italic">No hours specified</p>
-                )}
+                  );
+                })}
               </div>
             </div>
 
