@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Category, PaymentMethod, Place, PlaceImage, Review, ReviewImage, HelpfulVote
 from django.contrib.auth.models import User
-from django.db.models import Avg
+from django.db.models import Avg, Count
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -83,7 +83,7 @@ class PlaceDetailSerializer(serializers.ModelSerializer):
             avg_overall=Avg('rating_overall'),
             avg_wifi=Avg('wifi_speed'),
             avg_cleanliness=Avg('cleanliness'),
-            total_reviews=models.Count('id')
+            total_reviews=Count('id')
         )
 
         # Calculate customer service percentage
