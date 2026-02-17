@@ -43,9 +43,9 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ('helpful_count',)
 
     def get_is_helpful(self, obj):
-        user = self.context.get('request').user
-        if user.is_authenticated:
-            return HelpfulVote.objects.filter(review=obj, user=user).exists()
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            return HelpfulVote.objects.filter(review=obj, user=request.user).exists()
         return False
 
     def create(self, validated_data):

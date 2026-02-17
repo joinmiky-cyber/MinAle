@@ -145,7 +145,7 @@ export default function Home() {
                     <div className="flex items-center gap-1 shrink-0 bg-yellow-50 px-1.5 py-0.5 rounded border border-yellow-100">
                       <Star className="fill-yellow-400 text-yellow-400" size={14} />
                       <span className="text-xs font-bold text-yellow-700">
-                        {place.avg_rating ? place.avg_rating.toFixed(1) : "N/A"}
+                        {place.avg_rating ? Number(place.avg_rating).toFixed(1) : "N/A"}
                       </span>
                     </div>
                   </div>

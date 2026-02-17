@@ -219,22 +219,22 @@ export default function PlaceDetail() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
               <div className="flex flex-col items-center gap-1">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase">Overall</span>
-                <span className="text-lg font-black text-primary">{place.rating_stats.avg_overall.toFixed(1)}</span>
+                <span className="text-lg font-black text-primary">{place.rating_stats.avg_overall?.toFixed(1) || '0.0'}</span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase">Service</span>
-                <StarRating rating={Math.round(place.rating_stats.avg_service)} size={12} readonly />
-                <span className="text-[9px] text-muted-foreground">{place.rating_stats.avg_service.toFixed(1)}</span>
+                <StarRating rating={Math.round(place.rating_stats.avg_service || 0)} size={12} readonly />
+                <span className="text-[9px] text-muted-foreground">{place.rating_stats.avg_service?.toFixed(1) || '0.0'}</span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1"><Wifi size={10} /> Wi-Fi</span>
-                <StarRating rating={Math.round(place.rating_stats.avg_wifi)} size={12} readonly />
-                <span className="text-[9px] text-muted-foreground">{place.rating_stats.avg_wifi.toFixed(1)}</span>
+                <StarRating rating={Math.round(place.rating_stats.avg_wifi || 0)} size={12} readonly />
+                <span className="text-[9px] text-muted-foreground">{place.rating_stats.avg_wifi?.toFixed(1) || '0.0'}</span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1"><Sparkles size={10} /> Clean</span>
-                <StarRating rating={Math.round(place.rating_stats.avg_cleanliness)} size={12} readonly />
-                <span className="text-[9px] text-muted-foreground">{place.rating_stats.avg_cleanliness.toFixed(1)}</span>
+                <StarRating rating={Math.round(place.rating_stats.avg_cleanliness || 0)} size={12} readonly />
+                <span className="text-[9px] text-muted-foreground">{place.rating_stats.avg_cleanliness?.toFixed(1) || '0.0'}</span>
               </div>
             </div>
           )}
