@@ -34,7 +34,7 @@ export const uploadImage = async (file: File, folder: string = 'places') => {
   }
 
   const { data: { publicUrl } } = client.storage
-    .from(bucket)
+    .from(BUCKET_NAME)
     .getPublicUrl(filePath);
 
   return publicUrl;
