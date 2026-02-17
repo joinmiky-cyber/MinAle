@@ -11,6 +11,7 @@ MinAle is a localized business discovery platform focused on Ethiopian cities, a
 - **Database**: Supabase (PostgreSQL).
 - **Storage**: Supabase Buckets (for business images).
 - **Auth**: JWT (SimpleJWT) for API, Django Sessions for Admin.
+- **Optimization**: Client-side image compression (down to ~200KB) for data efficiency.
 
 ---
 
@@ -158,6 +159,13 @@ To allow image uploads for business listings:
 2.  Go to **Places**.
 3.  Find the new submission, check the details/images, and change the status to **Approved**.
 4.  The business will now appear on the public home page!
+
+### Reviewing a Business
+1.  On any business detail page, click **Write a Review**.
+2.  Rate the business across multiple criteria: Overall, Wi-Fi, and Cleanliness.
+3.  Tag the customer service as Good or Bad.
+4.  Upload photos (they will be automatically compressed to save your data).
+5.  Helpful reviews can be upvoted by the community using the **Helpful** button.
 
 ---
 
