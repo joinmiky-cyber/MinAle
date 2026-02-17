@@ -1,23 +1,12 @@
 from django.db import migrations, models
 
-def delete_all_places(apps, schema_editor):
-    Place = apps.get_model('places', 'Place')
-    Place.objects.all().delete()
-    # Also delete images since they depend on places
-    PlaceImage = apps.get_model('places', 'PlaceImage')
-    PlaceImage.objects.all().delete()
-
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("places", "0001_initial"),
+        ("places", "0002_clear_data"),
     ]
 
     operations = [
-        # 1. Clear existing data to avoid type conversion errors
-        migrations.RunPython(delete_all_places),
-
-        # 2. Add label to PlaceImage
         migrations.AddField(
             model_name="placeimage",
             name="label",
@@ -34,7 +23,6 @@ class Migration(migrations.Migration):
                 max_length=20,
             ),
         ),
-        # 3. Alter opening_hours to JSONField
         migrations.AlterField(
             model_name="place",
             name="opening_hours",
