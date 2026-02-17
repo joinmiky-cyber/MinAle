@@ -70,7 +70,7 @@ class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
 
     rating_overall = models.PositiveSmallIntegerField(default=5)
-    customer_service = models.BooleanField(default=True, help_text="Yes/No for good customer service")
+    customer_service = models.PositiveSmallIntegerField(default=5, help_text="1-5 rating")
     wifi_speed = models.PositiveSmallIntegerField(default=3, help_text="1-5 rating")
     cleanliness = models.PositiveSmallIntegerField(default=3, help_text="1-5 rating")
 
@@ -87,8 +87,18 @@ class Review(models.Model):
         return f"Review by {self.user.username} for {self.place.name}"
 
 class ReviewImage(models.Model):
+    LABEL_CHOICES = [
+        ('Inside', 'Inside'),
+        ('Outside', 'Outside'),
+        ('Drink', 'Drink'),
+        ('Food', 'Food'),
+        ('Menu', 'Menu'),
+        ('Amenities', 'Amenities'),
+        ('User Photo', 'User Photo'),
+    ]
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='images')
     image_url = models.URLField(max_length=1000)
+    label = models.CharField(max_length=20, choices=LABEL_CHOICES, default='User Photo')
     created_at = models.DateTimeField(auto_now_add=True)
 
 class HelpfulVote(models.Model):

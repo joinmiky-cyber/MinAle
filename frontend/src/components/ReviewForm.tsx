@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { StarRating } from './StarRating';
-import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, X, Loader2, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,13 +18,15 @@ interface ReviewFormProps {
   onSuccess: () => void;
 }
 
+const LABELS = ['Inside', 'Outside', 'Drink', 'Food', 'Menu', 'Amenities', 'User Photo'];
+
 export function ReviewForm({ placeId, onSuccess }: ReviewFormProps) {
   const [ratingOverall, setRatingOverall] = useState(5);
-  const [customerService, setCustomerService] = useState(true);
+  const [customerService, setCustomerService] = useState(5);
   const [wifiSpeed, setWifiSpeed] = useState(3);
   const [cleanliness, setCleanliness] = useState(3);
   const [comment, setComment] = useState('');
-  const [images, setImages] = useState<{ file: File; preview: string; status: 'idle' | 'uploading' | 'success' }[]>([]);
+  const [images, setImages] = useState<{ file: File; preview: string; label: string; status: 'idle' | 'uploading' | 'success' }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,6 +43,7 @@ export function ReviewForm({ placeId, onSuccess }: ReviewFormProps) {
           return {
             file: compressedFile,
             preview: URL.createObjectURL(compressedFile),
+            label: 'User Photo',
             status: 'idle' as const,
           };
         } catch (error) {
@@ -62,6 +65,10 @@ export function ReviewForm({ placeId, onSuccess }: ReviewFormProps) {
     });
   };
 
+  const updateImageLabel = (index: number, label: string) => {
+    setImages(prev => prev.map((img, i) => i === index ? { ...img, label } : img));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment) {
@@ -71,14 +78,14 @@ export function ReviewForm({ placeId, onSuccess }: ReviewFormProps) {
     setIsSubmitting(true);
 
     try {
-      const imageUrls: string[] = [];
+      const finalImages: { image_url: string; label: string }[] = [];
 
       // Upload images
       const updatedImages = [...images];
       for (let i = 0; i < updatedImages.length; i++) {
         setImages(prev => prev.map((img, idx) => idx === i ? { ...img, status: 'uploading' } : img));
         const url = await uploadImage(updatedImages[i].file, 'reviews');
-        imageUrls.push(url);
+        finalImages.push({ image_url: url, label: updatedImages[i].label });
         setImages(prev => prev.map((img, idx) => idx === i ? { ...img, status: 'success' } : img));
       }
 
@@ -89,7 +96,7 @@ export function ReviewForm({ placeId, onSuccess }: ReviewFormProps) {
         wifi_speed: wifiSpeed,
         cleanliness: cleanliness,
         comment,
-        image_urls: imageUrls,
+        images_data: finalImages,
       });
 
       toast.success('Review submitted!');
@@ -105,18 +112,15 @@ export function ReviewForm({ placeId, onSuccess }: ReviewFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
-        <div className="flex flex-col items-center gap-2 p-4 bg-primary/5 rounded-xl">
+        <div className="flex flex-col items-center gap-2 p-4 bg-primary/5 rounded-xl border border-primary/10">
           <Label className="text-lg font-bold">Overall Experience</Label>
           <StarRating rating={ratingOverall} onRatingChange={setRatingOverall} size={40} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <Label className="font-medium">Good Customer Service?</Label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase">{customerService ? 'Yes' : 'No'}</span>
-              <Switch checked={customerService} onCheckedChange={setCustomerService} />
-            </div>
+          <div className="flex flex-col gap-2 p-3 border rounded-lg">
+            <Label className="font-medium">Customer Service</Label>
+            <StarRating rating={customerService} onRatingChange={setCustomerService} size={18} />
           </div>
 
           <div className="flex flex-col gap-2 p-3 border rounded-lg">
@@ -124,7 +128,7 @@ export function ReviewForm({ placeId, onSuccess }: ReviewFormProps) {
             <StarRating rating={wifiSpeed} onRatingChange={setWifiSpeed} size={18} />
           </div>
 
-          <div className="flex flex-col gap-2 p-3 border rounded-lg">
+          <div className="flex flex-col gap-2 p-3 border rounded-lg sm:col-span-2">
             <Label className="font-medium">Cleanliness</Label>
             <StarRating rating={cleanliness} onRatingChange={setCleanliness} size={18} />
           </div>
@@ -142,40 +146,60 @@ export function ReviewForm({ placeId, onSuccess }: ReviewFormProps) {
         </div>
 
         <div className="space-y-4">
-          <Label>Photos (Compressed for fast upload)</Label>
-          <div className="flex flex-wrap gap-3">
+          <Label className="text-sm font-bold flex justify-between">
+            <span>Photos</span>
+            <span className="text-muted-foreground font-normal italic">Compressed automatically</span>
+          </Label>
+          <div className="flex flex-wrap gap-4">
             {images.map((img, i) => (
-              <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border">
-                <img src={img.preview} alt="Upload" className={cn("object-cover w-full h-full", img.status !== 'success' && "opacity-50")} />
-                {img.status === 'uploading' && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="animate-spin text-white" size={16} />
-                  </div>
-                )}
-                {img.status === 'success' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    <CheckCircle2 className="text-green-500" size={20} />
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => removeImage(i)}
-                  className="absolute top-0 right-0 p-1 bg-black/50 text-white rounded-bl-lg"
-                >
-                  <X size={12} />
-                </button>
+              <div key={i} className="group relative space-y-2">
+                <div className="relative w-24 h-24 rounded-lg overflow-hidden border">
+                  <img src={img.preview} alt="Upload" className={cn("object-cover w-full h-full", img.status !== 'success' && "opacity-50")} />
+                  {img.status === 'uploading' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                      <Loader2 className="animate-spin text-white" size={20} />
+                    </div>
+                  )}
+                  {img.status === 'success' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <CheckCircle2 className="text-green-500" size={24} />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute top-0 right-0 p-1 bg-black/50 text-white rounded-bl-lg"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <Select value={img.label} onValueChange={(v) => updateImageLabel(i, v)}>
+                  <SelectTrigger className="h-6 text-[9px] w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LABELS.map(l => <SelectItem key={l} value={l} className="text-[10px]">{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             ))}
-            <label className="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+            <label className="w-24 h-24 flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
               <Plus className="text-gray-400" />
+              <span className="text-[10px] text-gray-400 mt-1">Add Photo</span>
               <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
             </label>
           </div>
         </div>
       </div>
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? 'Posting...' : 'Post Review'}
+      <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isSubmitting}>
+        {isSubmitting ? (
+          <div className="flex items-center gap-2">
+            <Loader2 className="animate-spin" />
+            Posting Review...
+          </div>
+        ) : 'Post Review'}
       </Button>
     </form>
   );

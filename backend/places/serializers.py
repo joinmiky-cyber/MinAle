@@ -21,24 +21,24 @@ class PlaceImageSerializer(serializers.ModelSerializer):
 class ReviewImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReviewImage
-        fields = ('id', 'image_url')
+        fields = ('id', 'image_url', 'label')
+
+class ReviewImageInputSerializer(serializers.Serializer):
+    image_url = serializers.URLField()
+    label = serializers.ChoiceField(choices=ReviewImage.LABEL_CHOICES, default='User Photo')
 
 class ReviewSerializer(serializers.ModelSerializer):
     user_name = serializers.ReadOnlyField(source='user.username')
     images = ReviewImageSerializer(many=True, read_only=True)
     is_helpful = serializers.SerializerMethodField()
-    image_urls = serializers.ListField(
-        child=serializers.URLField(),
-        write_only=True,
-        required=False
-    )
+    images_data = ReviewImageInputSerializer(many=True, write_only=True, required=False)
 
     class Meta:
         model = Review
         fields = (
             'id', 'place', 'user_name', 'rating_overall', 'customer_service',
             'wifi_speed', 'cleanliness', 'comment', 'helpful_count',
-            'is_helpful', 'images', 'image_urls', 'created_at'
+            'is_helpful', 'images', 'images_data', 'created_at'
         )
         read_only_fields = ('helpful_count',)
 
@@ -49,10 +49,10 @@ class ReviewSerializer(serializers.ModelSerializer):
         return False
 
     def create(self, validated_data):
-        image_urls = validated_data.pop('image_urls', [])
+        images_data = validated_data.pop('images_data', [])
         review = Review.objects.create(**validated_data)
-        for url in image_urls:
-            ReviewImage.objects.create(review=review, image_url=url)
+        for item in images_data:
+            ReviewImage.objects.create(review=review, **item)
         return review
 
 class GalleryImageInputSerializer(serializers.Serializer):
@@ -61,10 +61,18 @@ class GalleryImageInputSerializer(serializers.Serializer):
 
 class PlaceListSerializer(serializers.ModelSerializer):
     category_name = serializers.ReadOnlyField(source='category.name')
+    avg_rating = serializers.SerializerMethodField()
+    total_reviews = serializers.SerializerMethodField()
 
     class Meta:
         model = Place
-        fields = ('id', 'name', 'address', 'category', 'category_name', 'cover_image', 'status', 'created_at')
+        fields = ('id', 'name', 'address', 'category', 'category_name', 'cover_image', 'status', 'avg_rating', 'total_reviews', 'created_at')
+
+    def get_avg_rating(self, obj):
+        return obj.reviews.aggregate(Avg('rating_overall'))['rating_overall__avg']
+
+    def get_total_reviews(self, obj):
+        return obj.reviews.count()
 
 class PlaceDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
@@ -81,19 +89,11 @@ class PlaceDetailSerializer(serializers.ModelSerializer):
     def get_rating_stats(self, obj):
         stats = obj.reviews.aggregate(
             avg_overall=Avg('rating_overall'),
+            avg_service=Avg('customer_service'),
             avg_wifi=Avg('wifi_speed'),
             avg_cleanliness=Avg('cleanliness'),
             total_reviews=Count('id')
         )
-
-        # Calculate customer service percentage
-        total = stats['total_reviews']
-        if total > 0:
-            good_service = obj.reviews.filter(customer_service=True).count()
-            stats['customer_service_pct'] = (good_service / total) * 100
-        else:
-            stats['customer_service_pct'] = 0
-
         return stats
 
 class PlaceCreateSerializer(serializers.ModelSerializer):

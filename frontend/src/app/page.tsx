@@ -5,7 +5,7 @@ import api from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, MapPin, CreditCard } from 'lucide-react';
+import { Search, MapPin, Star } from 'lucide-react';
 import Link from 'next/link';
 
 interface Category {
@@ -19,6 +19,8 @@ interface Place {
   address: string;
   category_name: string;
   cover_image: string;
+  avg_rating: number | null;
+  total_reviews: number;
 }
 
 export default function Home() {
@@ -120,7 +122,7 @@ export default function Home() {
         ) : places.length > 0 ? (
           places.map((place) => (
             <Link href={`/places/${place.id}`} key={place.id}>
-              <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
+              <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
                 <div className="aspect-video relative bg-gray-100">
                   {place.cover_image ? (
                     <img
@@ -137,14 +139,25 @@ export default function Home() {
                     {place.category_name}
                   </div>
                 </div>
-                <CardHeader>
-                  <CardTitle className="line-clamp-1">{place.name}</CardTitle>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start gap-2">
+                    <CardTitle className="line-clamp-1">{place.name}</CardTitle>
+                    <div className="flex items-center gap-1 shrink-0 bg-yellow-50 px-1.5 py-0.5 rounded border border-yellow-100">
+                      <Star className="fill-yellow-400 text-yellow-400" size={14} />
+                      <span className="text-xs font-bold text-yellow-700">
+                        {place.avg_rating ? place.avg_rating.toFixed(1) : "N/A"}
+                      </span>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <CardContent className="flex-grow flex flex-col justify-between">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
                     <MapPin size={14} />
                     <span className="line-clamp-1">{place.address}</span>
                   </div>
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                    {place.total_reviews > 0 ? `${place.total_reviews} Reviews` : "No Reviews Yet"}
+                  </p>
                 </CardContent>
               </Card>
             </Link>

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, CreditCard, ChevronLeft, Image as ImageIcon, ThumbsUp, Wifi, Sparkles, MessageSquare } from 'lucide-react';
+import { MapPin, Clock, CreditCard, ChevronLeft, Image as ImageIcon, ThumbsUp, Wifi, Sparkles, MessageSquare, User } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -23,22 +23,22 @@ interface Review {
   id: number;
   user_name: string;
   rating_overall: number;
-  customer_service: boolean;
+  customer_service: number;
   wifi_speed: number;
   cleanliness: number;
   comment: string;
   helpful_count: number;
   is_helpful: boolean;
-  images: { image_url: string }[];
+  images: { image_url: string; label: string }[];
   created_at: string;
 }
 
 interface RatingStats {
   avg_overall: number;
+  avg_service: number;
   avg_wifi: number;
   avg_cleanliness: number;
   total_reviews: number;
-  customer_service_pct: number;
 }
 
 interface Place {
@@ -56,7 +56,7 @@ interface Place {
 }
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const LABELS = ['All', 'Inside', 'Outside', 'Drink', 'Food', 'Menu', 'Amenities'];
+const LABELS = ['All', 'Inside', 'Outside', 'Drink', 'Food', 'Menu', 'Amenities', 'User Photo'];
 
 const formatTime = (timeStr: string) => {
   if (!timeStr) return '';
@@ -104,11 +104,19 @@ export default function PlaceDetail() {
     }
   };
 
-  const filteredGallery = useMemo(() => {
+  const combinedGallery = useMemo(() => {
     if (!place) return [];
-    if (selectedLabel === 'All') return place.gallery;
-    return place.gallery.filter(img => img.label === selectedLabel);
-  }, [place, selectedLabel]);
+    const scoutImages = place.gallery.map(img => ({ ...img, source: 'Official' }));
+    const reviewImages = place.reviews.flatMap(r =>
+      r.images.map(img => ({ ...img, source: `Review by ${r.user_name}` }))
+    );
+    return [...scoutImages, ...reviewImages];
+  }, [place]);
+
+  const filteredGallery = useMemo(() => {
+    if (selectedLabel === 'All') return combinedGallery;
+    return combinedGallery.filter(img => img.label === selectedLabel);
+  }, [combinedGallery, selectedLabel]);
 
   if (loading) return <div className="animate-pulse h-96 bg-gray-100 rounded-lg" />;
   if (!place) return <p>Place not found.</p>;
@@ -122,27 +130,6 @@ export default function PlaceDetail() {
             Back to Browse
           </Button>
         </Link>
-
-        <Dialog open={isReviewModalOpen} onOpenChange={setIsReviewModalOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <MessageSquare size={18} />
-              Write a Review
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Share your experience at {place.name}</DialogTitle>
-            </DialogHeader>
-            <ReviewForm
-              placeId={place.id}
-              onSuccess={() => {
-                setIsReviewModalOpen(false);
-                fetchPlace();
-              }}
-            />
-          </DialogContent>
-        </Dialog>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-12">
@@ -168,8 +155,8 @@ export default function PlaceDetail() {
               <div className="flex flex-wrap gap-2">
                 {LABELS.map(label => {
                   const count = label === 'All'
-                    ? place.gallery.length
-                    : place.gallery.filter(img => img.label === label).length;
+                    ? combinedGallery.length
+                    : combinedGallery.filter(img => img.label === label).length;
 
                   if (count === 0 && label !== 'All') return null;
 
@@ -181,7 +168,7 @@ export default function PlaceDetail() {
                       onClick={() => setSelectedLabel(label)}
                       className="rounded-full h-8"
                     >
-                      {label}
+                      {label} {count > 0 && <span className="ml-1 opacity-60 text-[10px]">{count}</span>}
                     </Button>
                   );
                 })}
@@ -193,8 +180,9 @@ export default function PlaceDetail() {
                 filteredGallery.map((img, i) => (
                   <div key={i} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 border shadow-sm hover:shadow-md transition-shadow">
                     <img src={img.image_url} alt={`${place.name} ${i}`} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110" />
-                    <div className="absolute bottom-2 left-2">
-                      <Badge variant="secondary" className="opacity-90 backdrop-blur-sm">{img.label}</Badge>
+                    <div className="absolute bottom-2 left-2 flex flex-col gap-1 items-start">
+                      <Badge variant="secondary" className="opacity-90 backdrop-blur-sm text-[10px] py-0">{img.label}</Badge>
+                      <Badge variant="outline" className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 text-[8px] py-0 border-none">{img.source}</Badge>
                     </div>
                   </div>
                 ))
@@ -228,21 +216,25 @@ export default function PlaceDetail() {
 
           {/* Aggregated Rating Stats */}
           {place.rating_stats.total_reviews > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-primary/5 p-6 rounded-2xl border border-primary/10">
               <div className="flex flex-col items-center gap-1">
-                <span className="text-xs font-bold text-muted-foreground uppercase">Service</span>
-                <span className="text-lg font-black text-primary">{place.rating_stats.customer_service_pct.toFixed(0)}%</span>
-                <span className="text-[10px] text-muted-foreground">Good Experience</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Overall</span>
+                <span className="text-lg font-black text-primary">{place.rating_stats.avg_overall.toFixed(1)}</span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <span className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1"><Wifi size={12} /> Wi-Fi</span>
-                <StarRating rating={Math.round(place.rating_stats.avg_wifi)} size={14} readonly />
-                <span className="text-[10px] text-muted-foreground">{place.rating_stats.avg_wifi.toFixed(1)} Avg</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Service</span>
+                <StarRating rating={Math.round(place.rating_stats.avg_service)} size={12} readonly />
+                <span className="text-[9px] text-muted-foreground">{place.rating_stats.avg_service.toFixed(1)}</span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <span className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-1"><Sparkles size={12} /> Clean</span>
-                <StarRating rating={Math.round(place.rating_stats.avg_cleanliness)} size={14} readonly />
-                <span className="text-[10px] text-muted-foreground">{place.rating_stats.avg_cleanliness.toFixed(1)} Avg</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1"><Wifi size={10} /> Wi-Fi</span>
+                <StarRating rating={Math.round(place.rating_stats.avg_wifi)} size={12} readonly />
+                <span className="text-[9px] text-muted-foreground">{place.rating_stats.avg_wifi.toFixed(1)}</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1"><Sparkles size={10} /> Clean</span>
+                <StarRating rating={Math.round(place.rating_stats.avg_cleanliness)} size={12} readonly />
+                <span className="text-[9px] text-muted-foreground">{place.rating_stats.avg_cleanliness.toFixed(1)}</span>
               </div>
             </div>
           )}
@@ -298,10 +290,38 @@ export default function PlaceDetail() {
         </div>
       </div>
 
+      <div className="py-12 flex flex-col items-center gap-6 bg-primary/5 rounded-3xl border border-dashed border-primary/20">
+        <MessageSquare size={48} className="text-primary opacity-20" />
+        <div className="text-center space-y-2">
+          <h3 className="text-2xl font-black">Visited this place?</h3>
+          <p className="text-muted-foreground">Share your experience with the community and help others discover great spots.</p>
+        </div>
+
+        <Dialog open={isReviewModalOpen} onOpenChange={setIsReviewModalOpen}>
+          <DialogTrigger asChild>
+            <Button size="lg" className="px-12 h-14 text-lg font-bold rounded-full shadow-lg hover:shadow-xl transition-all">
+              Write a Review
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Share your experience at {place.name}</DialogTitle>
+            </DialogHeader>
+            <ReviewForm
+              placeId={place.id}
+              onSuccess={() => {
+                setIsReviewModalOpen(false);
+                fetchPlace();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
       {/* Reviews Section */}
-      <div className="space-y-8 border-t pt-12">
+      <div className="space-y-8 pt-12">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-black">Reviews</h2>
+          <h2 className="text-3xl font-black">Community Reviews</h2>
           <div className="flex gap-4 items-center">
             <span className="text-sm text-muted-foreground">{place.reviews.length} reviews total</span>
           </div>
@@ -340,7 +360,7 @@ export default function PlaceDetail() {
                 {/* Sub-ratings */}
                 <div className="flex flex-wrap gap-4 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-gray-50 p-2 rounded-lg">
                   <div className="flex items-center gap-1">
-                    Service: <span className={review.customer_service ? "text-green-600" : "text-red-600"}>{review.customer_service ? "YES" : "NO"}</span>
+                    Service: <StarRating rating={review.customer_service} size={10} readonly />
                   </div>
                   <div className="flex items-center gap-1">
                     Wi-Fi: <StarRating rating={review.wifi_speed} size={10} readonly />
@@ -355,8 +375,11 @@ export default function PlaceDetail() {
                 {review.images.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {review.images.map((img, i) => (
-                      <div key={i} className="w-24 h-24 rounded-lg overflow-hidden border">
+                      <div key={i} className="group relative w-24 h-24 rounded-lg overflow-hidden border">
                         <img src={img.image_url} alt="Review" className="object-cover w-full h-full cursor-pointer hover:opacity-90 transition-opacity" />
+                        <div className="absolute bottom-1 left-1">
+                          <Badge className="text-[8px] py-0 px-1 bg-black/60 border-none">{img.label}</Badge>
+                        </div>
                       </div>
                     ))}
                   </div>
