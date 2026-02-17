@@ -69,7 +69,8 @@ class PlaceListSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'address', 'category', 'category_name', 'cover_image', 'status', 'avg_rating', 'total_reviews', 'created_at')
 
     def get_avg_rating(self, obj):
-        return obj.reviews.aggregate(Avg('rating_overall'))['rating_overall__avg']
+        avg = obj.reviews.aggregate(Avg('rating_overall'))['rating_overall__avg']
+        return float(avg) if avg is not None else 0.0
 
     def get_total_reviews(self, obj):
         return obj.reviews.count()
@@ -78,13 +79,16 @@ class PlaceDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     payment_methods = PaymentMethodSerializer(many=True, read_only=True)
     gallery = PlaceImageSerializer(many=True, read_only=True)
-    scout_name = serializers.ReadOnlyField(source='scout.username')
+    scout_name = serializers.SerializerMethodField()
     reviews = ReviewSerializer(many=True, read_only=True)
     rating_stats = serializers.SerializerMethodField()
 
     class Meta:
         model = Place
         fields = '__all__'
+
+    def get_scout_name(self, obj):
+        return obj.scout.username if obj.scout else None
 
     def get_rating_stats(self, obj):
         stats = obj.reviews.aggregate(
@@ -94,7 +98,14 @@ class PlaceDetailSerializer(serializers.ModelSerializer):
             avg_cleanliness=Avg('cleanliness'),
             total_reviews=Count('id')
         )
-        return stats
+        # Ensure all values are JSON serializable and handle None
+        return {
+            'avg_overall': float(stats['avg_overall']) if stats['avg_overall'] is not None else 0.0,
+            'avg_service': float(stats['avg_service']) if stats['avg_service'] is not None else 0.0,
+            'avg_wifi': float(stats['avg_wifi']) if stats['avg_wifi'] is not None else 0.0,
+            'avg_cleanliness': float(stats['avg_cleanliness']) if stats['avg_cleanliness'] is not None else 0.0,
+            'total_reviews': stats['total_reviews'] or 0
+        }
 
 class PlaceCreateSerializer(serializers.ModelSerializer):
     gallery = GalleryImageInputSerializer(many=True, write_only=True, required=False)
